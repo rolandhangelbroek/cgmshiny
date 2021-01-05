@@ -19,14 +19,21 @@ knitr::opts_chunk$set(
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
 <!-- badges: end -->
 
-cgmshiny is an R Shiny application for analyzing Continuous Glucose Monitor data. Primarily intended for use in research studies and dietary interventions.
+CGM Shiny is an R Shiny application for analyzing Continuous Glucose Monitor data. Primarily intended for use in research studies and dietary interventions.
 
 ## Installation
 
 You can install the released version of cgmshiny from [Github](https://github.com/) with:
 
-```{r} 
+```{r, eval=F, echo=T} 
 devtools::install_github('rolandhangelbroek/cgmshiny')
 ```
 
+Starting the app can be done by running:
+
+```{r, eval=F, echo=T}
+library(cgmshiny)
+
+run_app()
+```
 
