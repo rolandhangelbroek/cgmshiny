@@ -13,43 +13,18 @@ knitr::opts_chunk$set(
 )
 ```
 
-# cgmshiny
+# CGM Shiny
 
 <!-- badges: start -->
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
 <!-- badges: end -->
 
-The goal of cgmshiny is to ...
+cgmshiny is an R Shiny application for analyzing Continuous Glucose Monitor data. Primarily intended for use in research studies and dietary interventions.
 
 ## Installation
 
-You can install the released version of cgmshiny from [CRAN](https://CRAN.R-project.org) with:
+You can install the released version of cgmshiny from [Github](https://github.com/) with:
 
-``` r
-install.packages("cgmshiny")
+```{r} 
+devtools::install_github('rolandhangelbroek/cgmshiny')
 ```
-
-## Example
-
-This is a basic example which shows you how to solve a common problem:
-
-```{r example}
-library(cgmshiny)
-## basic example code
-```
-
-What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so:
-
-```{r cars}
-summary(cars)
-```
-
-You'll still need to render `README.Rmd` regularly, to keep `README.md` up-to-date.
-
-You can also embed plots, for example:
-
-```{r pressure, echo = FALSE}
-plot(pressure)
-```
-
-In that case, don't forget to commit and push the resulting figure files, so they display on GitHub!

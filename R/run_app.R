@@ -1,6 +1,6 @@
-#' Run the Shiny Application
+#' Run the CGM Shiny Application
 #'
-#' @param ... A series of options to be used inside the app.
+#' @param ... Not used.
 #'
 #' @export
 #' @importFrom shiny shinyApp
