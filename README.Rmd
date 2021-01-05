@@ -28,3 +28,5 @@ You can install the released version of cgmshiny from [Github](https://github.co
 ```{r} 
 devtools::install_github('rolandhangelbroek/cgmshiny')
 ```
+
+
