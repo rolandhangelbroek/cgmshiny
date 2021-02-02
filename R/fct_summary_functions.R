@@ -48,6 +48,35 @@ AUC_timed = function (t, gluc, lb, ub, mode = 'AUC', ...) {
   return(ret)
 }
 
+calculate_MODD = function (timestamp, glucose) {
+  df = tibble(timestamp, glucose) %>%
+    mutate(date = as.character(lubridate::date(timestamp)))
+  
+  if (df$date %>% unique %>% length < 2) return(NA)
+  
+  modd = df %>%
+    arrange(date) %>%
+    group_by(timepoint = glue('{hour(timestamp)}_{minute(timestamp)}')) %>%
+    mutate(glucose_diff = glucose - dplyr::lag(glucose, 1)) %>%
+    na.omit() %>%
+    pull(glucose_diff) %>%
+    abs() %>%
+    mean(na.rm = TRUE)
+  
+  return(modd)
+}
+
+calculate_MAGE = function (timestamp, glucose) {
+  tibble(timestamp, glucose) %>%
+    na.omit() %>%
+    mutate(sd_glucose = sd(glucose),
+           mean_glucose = mean(glucose),
+           glucose_diff = abs(glucose - mean_glucose)) %>%
+    filter(glucose_diff > sd_glucose) %>%
+    pull(glucose_diff) %>%
+    mean()
+}
+
 calculate_analytics_metrics = function (df, prefix  = NULL, const = CONSTANTS) {
   df = df %>%
     summarize(mean_glucose = mean(glucose, na.rm = TRUE),
@@ -67,7 +96,9 @@ calculate_analytics_metrics = function (df, prefix  = NULL, const = CONSTANTS) {
               AUC = AUC_trapz(tijd, glucose),
               AUC_ignore_missing = AUC_trapz(tijd, glucose, na.rm = TRUE),
               iAUC = iAUC_trapz(tijd, glucose),
-              iAUC_ignore_missing = iAUC_trapz(tijd, glucose, na.rm = TRUE))
+              iAUC_ignore_missing = iAUC_trapz(tijd, glucose, na.rm = TRUE),
+              MODD = calculate_MODD(tijd, glucose),
+              MAGE = calculate_MAGE(tijd, glucose))
   
   if (is.null(prefix)) {
     return(df)

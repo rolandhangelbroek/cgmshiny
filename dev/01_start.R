@@ -20,7 +20,7 @@ golem::fill_desc(
   author_first_name = "Roland", # Your First Name
   author_last_name = "Hangelbroek", # Your Last Name
   author_email = "roland.hangelbroek@gmail.com", # Your Email
-  repo_url = 'https://github.com/rolandhangelbroek/cgm_shiny' # The URL of the GitHub Repo (optional) 
+  repo_url = 'https://github.com/rolandhangelbroek/cgmshiny' # The URL of the GitHub Repo (optional) 
 )     
 
 ## Set {golem} options ----
@@ -28,7 +28,7 @@ golem::set_golem_options()
 
 ## Create Common Files ----
 ## See ?usethis for more information
-usethis::use_gpl3_license( name = "Roland Hangelbroek" )  # You can set another license here
+usethis::use_ccby_license()  # You can set another license here
 usethis::use_readme_rmd( open = FALSE )
 usethis::use_code_of_conduct()
 usethis::use_lifecycle_badge( "Experimental" )

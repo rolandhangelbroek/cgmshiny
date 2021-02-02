@@ -88,10 +88,10 @@ mod_subject_server <- function(input, output, session, db, CONSTANTS, table_list
                              subject_id = subject_id,
                              subject_label = subject_label,
                              subject_group = subject_group,
-                             stringsAsFactors = FALSE)
+                             stringsAsFactors = FALSE) 
     
     periods = lapply(1:periods, function (x) get_subject_period_data(subject = subject_id, period = x)) %>%
-      bind_rows
+      dplyr::bind_rows()
     
     r = list(subject_row = subject_row,
              period_df = periods)
@@ -102,10 +102,10 @@ mod_subject_server <- function(input, output, session, db, CONSTANTS, table_list
   period_names = reactive({
     study_selected = input$study_select
     
-    period_data = tbl(db, 'period_names') %>%
-      filter(study_name == study_selected) %>%
-      arrange(period_id) %>%
-      collect
+    period_data = dplyr::tbl(db, 'period_names') %>%
+      dplyr::filter(study_name == study_selected) %>%
+      dplyr::arrange(period_id) %>%
+      dplyr::collect()
     
     return(period_data)
   })
@@ -113,11 +113,11 @@ mod_subject_server <- function(input, output, session, db, CONSTANTS, table_list
   group_names = reactive({
     study_selected = input$study_select
     
-    period_data = tbl(db, 'group_names') %>%
-      filter(study_name == study_selected) %>%
-      arrange(group_name) %>%
-      collect %>%
-      .$group_name
+    period_data = dplyr::tbl(db, 'group_names') %>%
+      dplyr::filter(study_name == study_selected) %>%
+      dplyr::arrange(group_name) %>%
+      dplyr::collect() %>%
+      dplyr::pull(group_name)
     
     return(period_data)
   })
@@ -127,14 +127,14 @@ mod_subject_server <- function(input, output, session, db, CONSTANTS, table_list
     
     study_sele = input$study_select
     
-    study_info = tbl(db, 'studies') %>%
-      collect %>%
-      filter(study_name == study_sele) %>%
+    study_info = dplyr::tbl(db, 'studies') %>%
+      dplyr::collect() %>%
+      dplyr::filter(study_name == study_sele) %>%
       as.data.frame(stringsAsFactors = FALSE)
     
-    update_subject_data = tbl(db, 'subjects') %>%
-      filter(study_name == study_sele) %>%
-      collect
+    update_subject_data = dplyr::tbl(db, 'subjects') %>%
+      dplyr::filter(study_name == study_sele) %>%
+      dplyr::collect()
     
     if (nrow(update_subject_data) > 0) {
       apply(update_subject_data, 1, function (x) {
@@ -149,9 +149,9 @@ mod_subject_server <- function(input, output, session, db, CONSTANTS, table_list
     }
     
     
-    update_period_data = tbl(db, 'subject_periods') %>%
-      filter(study_name == study_sele) %>%
-      collect
+    update_period_data = dplyr::tbl(db, 'subject_periods') %>%
+      dplyr::filter(study_name == study_sele) %>%
+      dplyr::collect()
     
     if (nrow(update_period_data) > 0) {
       apply(update_period_data, 1, function (x) {
@@ -176,9 +176,9 @@ mod_subject_server <- function(input, output, session, db, CONSTANTS, table_list
     
     study_sele = input$study_select
     
-    study_info = tbl(db, 'studies') %>%
-      collect %>%
-      filter(study_name == study_sele) %>%
+    study_info = dplyr::tbl(db, 'studies') %>%
+      dplyr::collect() %>%
+      dplyr::filter(study_name == study_sele) %>%
       as.data.frame(stringsAsFactors = FALSE)
     
     study_participants = study_info$study_participants[1]
@@ -187,35 +187,35 @@ mod_subject_server <- function(input, output, session, db, CONSTANTS, table_list
     subject_data = lapply(1:study_participants, function (x) get_subject_data(subject = x, study = study_sele, periods = periods))
     
     subject_rows = lapply(subject_data, function (x) x[['subject_row']]) %>% 
-      bind_rows %>%
-      mutate(subject_id = as.character(subject_id))
+      dplyr::bind_rows() %>%
+      dplyr::mutate(subject_id = as.character(subject_id))
     
-    old_subject_data = tbl(db, 'subjects') %>%
-      filter(!study_name == study_sele) %>%
-      collect
+    old_subject_data = dplyr::tbl(db, 'subjects') %>%
+      dplyr::filter(!study_name == study_sele) %>%
+      dplyr::collect()
     
     new_subject_data = old_subject_data %>%
-      bind_rows(subject_rows) %>%
-      mutate(subject_id = as.character(subject_id),
+      dplyr::bind_rows(subject_rows) %>%
+      dplyr::mutate(subject_id = as.character(subject_id),
              subject_label = ifelse(is.na(subject_label) | subject_label == '', subject_id, subject_label) %>% make.unique) 
     
     dbWriteTable(db, 'subjects', new_subject_data, overwrite = TRUE, temporary = FALSE)
     
     subject_periods = lapply(subject_data, function (x) x[['period_df']]) %>% 
-      bind_rows %>%
-      mutate(subject_id = as.character(subject_id),
+      dplyr::bind_rows() %>%
+      dplyr::mutate(subject_id = as.character(subject_id),
              period_start = as.character(period_start),
              period_end = as.character(period_end)) %>%
-      left_join(subject_rows) %>%
-      select(-subject_label)  
+      dplyr::left_join(subject_rows) %>%
+      dplyr::select(-subject_label)  
     
-    old_period_data = tbl(db, 'subject_periods') %>%
-      filter(!study_name == study_sele) %>%
-      collect
+    old_period_data = dplyr::tbl(db, 'subject_periods') %>%
+      dplyr::filter(!study_name == study_sele) %>%
+      dplyr::collect()
     
     new_period_data = old_period_data %>%
-      bind_rows(subject_periods) %>%
-      mutate(subject_id = as.character(subject_id)) 
+      dplyr::bind_rows(subject_periods) %>%
+      dplyr::mutate(subject_id = as.character(subject_id)) 
     
     dbWriteTable(db, 'subject_periods', new_period_data, overwrite = TRUE, temporary = FALSE)
     
@@ -224,11 +224,11 @@ mod_subject_server <- function(input, output, session, db, CONSTANTS, table_list
   output$study_select_ui = renderUI({
     p = input$refresh_button
     
-    study_table = tbl(db, 'studies')
+    study_table = dplyr::tbl(db, 'studies')
     
     current_studies = study_table %>%
-      collect() %>%
-      .$study_name %>%
+      dplyr::collect() %>%
+      dplyr::pull(study_name) %>%
       unique
     
     selectInput(ns('study_select'), label = 'Study', choices = current_studies)
@@ -240,18 +240,18 @@ mod_subject_server <- function(input, output, session, db, CONSTANTS, table_list
     
     study_sele = input$study_select
     
-    study_info = tbl(db, 'studies') %>%
-      collect %>%
-      filter(study_name == study_sele) %>%
+    study_info = dplyr::tbl(db, 'studies') %>%
+      dplyr::collect() %>%
+      dplyr::filter(study_name == study_sele) %>%
       as.data.frame(stringsAsFactors = FALSE)
     
     study_participants = study_info$study_participants[1]
     periods = study_info$study_periods[1]
     
-    new_uploads = tbl(db, 'interpolated_data') %>%
-      count(processed_name) %>%
-      collect %>%
-      .$processed_name
+    new_uploads = dplyr::tbl(db, 'interpolated_data') %>%
+      dplyr::count(processed_name) %>%
+      dplyr::collect() %>%
+      dplyr::pull(processed_name)
     
     updateSelectInput(session, 'dataset_selection', label = 'Plot Dataset', choices = new_uploads, selected = new_uploads[1])
     
@@ -268,9 +268,9 @@ mod_subject_server <- function(input, output, session, db, CONSTANTS, table_list
     
     study_sele = input$study_select
     
-    study_info = current_studies = tbl(db, 'studies') %>%
-      collect %>%
-      filter(study_name == study_sele) %>%
+    study_info = current_studies = dplyr::tbl(db, 'studies') %>%
+      dplyr::collect() %>%
+      dplyr::filter(study_name == study_sele) %>%
       as.data.frame(stringsAsFactors = FALSE)
     
     study_participants = study_info$study_participants[1]
@@ -286,21 +286,21 @@ mod_subject_server <- function(input, output, session, db, CONSTANTS, table_list
     
     dataset = input$dataset_selection
     
-    full_data = tbl(db, 'interpolated_data') %>%
-      filter(processed_name == dataset) %>%
-      collect %>%
-      mutate(tijd = as.POSIXct(tijd, origin = '1970-01-01')) 
+    full_data = dplyr::tbl(db, 'interpolated_data') %>%
+      dplyr::filter(processed_name == dataset) %>%
+      dplyr::collect() %>%
+      dplyr::mutate(tijd = as.POSIXct(tijd, origin = '1970-01-01')) 
     
     full_data_ni = full_data %>%
-      filter(interpolated == FALSE)
+      dplyr::filter(interpolated == FALSE)
     
     full_data_interp = full_data %>%
-      filter(interpolated == TRUE)
+      dplyr::filter(interpolated == TRUE)
     
     full_data_missing = full_data %>%
-      mutate(missing = is.na(glucose),
+      dplyr::mutate(missing = is.na(glucose),
              glucose = na.approx(glucose)) %>% 
-      filter(missing == TRUE)
+      dplyr::filter(missing == TRUE)
     
     
     plot_ly(x = ~ tijd, y = ~ glucose, name = 'Glucose', data = full_data_ni, color = I("grey"), mode = 'lines', type = 'scatter') %>%

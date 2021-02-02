@@ -63,16 +63,16 @@ golem::add_fct( "summary_functions" )
 # Documentation
 
 ## Vignette ----
-usethis::use_vignette("cgmshiny")
-devtools::build_vignettes()
+# usethis::use_vignette("cgmshiny")
+# devtools::build_vignettes()
 
 ## Code coverage ----
 ## (You'll need GitHub there)
-usethis::use_github()
+# usethis::use_github()
 # usethis::use_travis()
 # usethis::use_appveyor()
 
 # You're now set! ----
 # go to dev/03_deploy.R
-rstudioapi::navigateToFile("dev/03_deploy.R")
+# rstudioapi::navigateToFile("dev/03_deploy.R")
 

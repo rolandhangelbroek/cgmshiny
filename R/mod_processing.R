@@ -81,7 +81,7 @@ mod_processing_server <- function(input, output, session, db, CONSTANTS, table_l
                           to = max(tijd),  
                           by = as.difftime(input$minute_rounding, units = 'mins'))) %>%
       mutate(interpolated = ifelse(is.na(glucose), TRUE, FALSE),
-             glucose = na.approx(glucose)) %>%
+             glucose = na.approx(glucose, x = tijd)) %>%
       ungroup %>% 
       mutate(chunk = ifelse((unix_t - lag(unix_t, 1)) > chunk_size, 1, 0),
              chunk = replace_na(chunk, 0) %>% cumsum,
@@ -118,7 +118,7 @@ mod_processing_server <- function(input, output, session, db, CONSTANTS, table_l
     
     full_data_missing = full_data %>%
       mutate(missing = is.na(glucose),
-             glucose = na.approx(glucose)) %>% 
+             glucose = na.approx(glucose, x = tijd)) %>% 
       filter(missing == TRUE)
     
     if (input$pro_plot_coloring == 'missings') {

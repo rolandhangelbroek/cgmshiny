@@ -194,17 +194,17 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
                 interpolated_percentage = sum(interpolated, na.rm = TRUE) / value_count * 100)
     
     summary_df_all_values = summary_df %>%
-      calculate_analytics_metrics()
+      calculate_analytics_metrics(const = CONSTANTS)
     
     summary_df_wake = summary_df %>%
       filter(hour(tijd) >= CONSTANTS$WAKE_START,
              hour(tijd) < CONSTANTS$WAKE_END) %>%
-      calculate_analytics_metrics(prefix = 'wake')
+      calculate_analytics_metrics(prefix = 'wake', const = CONSTANTS)
     
     summary_df_sleep = summary_df %>%
       filter(hour(tijd) >= CONSTANTS$SLEEP_START,
              hour(tijd) < CONSTANTS$SLEEP_END) %>%
-      calculate_analytics_metrics(prefix = 'sleep')
+      calculate_analytics_metrics(prefix = 'sleep', const = CONSTANTS)
     
     summary_df = full_join(summary_df_general, summary_df_all_values) %>%
       full_join(summary_df_wake) %>%
