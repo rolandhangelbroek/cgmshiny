@@ -22,7 +22,8 @@ mod_processing_ui <- function(id) {
       box(
         title = 'Interpolation Settings',
         sliderInput(ns('segment_size'), label = 'Maximum Interpolation Gap (minutes)', min = 15, max = 300, step = 15, value = 60),
-        sliderInput(ns('chunk_distance'), label = 'Time Distance Between Chunks (hours)', min = 1, max = 300, step = 4, value = 100)
+        sliderInput(ns('chunk_distance'), label = 'Time Distance Between Chunks (hours)', min = 1, max = 300, step = 4, value = 100),
+        sliderInput(ns('minute_rounding'), label = 'Round timestamp to whole minutes', min = 5, max = 30, step = 5, value = 15)
       )
     ),
     fluidRow(
@@ -58,6 +59,11 @@ mod_processing_server <- function(input, output, session, db, CONSTANTS, table_l
   })
   
   process_datafile = reactive({
+    req(input$data_selection)
+    req(input$segment_size)
+    req(input$chunk_distance)
+    req(input$minute_rounding)
+    
     data_file = input$data_selection
     fragment_size = input$segment_size * 60
     chunk_size = input$chunk_distance * 60 * 60
@@ -69,11 +75,11 @@ mod_processing_server <- function(input, output, session, db, CONSTANTS, table_l
       mutate(segment = ifelse((unix_t - lag(unix_t, 1)) > fragment_size, 1, 0),
              segment = replace_na(segment, 0) %>% cumsum,
              segment = segment + 1) %>%
-      mutate(tijd = round_date(tijd, period(mins = 15))) %>%
+      mutate(tijd = round_date(tijd, period(mins = input$minute_rounding))) %>%
       group_by(segment) %>%
       complete(tijd = seq(from = min(tijd), 
                           to = max(tijd),  
-                          by = as.difftime(15, units = 'mins'))) %>%
+                          by = as.difftime(input$minute_rounding, units = 'mins'))) %>%
       mutate(interpolated = ifelse(is.na(glucose), TRUE, FALSE),
              glucose = na.approx(glucose)) %>%
       ungroup %>% 
@@ -85,7 +91,7 @@ mod_processing_server <- function(input, output, session, db, CONSTANTS, table_l
       group_by(chunk) %>%
       complete(tijd = seq(from = min(tijd), 
                           to = max(tijd),  
-                          by = as.difftime(15, units = 'mins'))) %>%
+                          by = as.difftime(input$minute_rounding, units = 'mins'))) %>%
       mutate(timestep = hour(tijd) * 60 + minute(tijd))
     
     return(selected_data)

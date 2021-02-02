@@ -11,12 +11,13 @@
 #' @import ggplot2
 #' @import shiny
 #' @import DBI
-#' @import DT
-#' @import glue
-#' @import data.table
+#' @importFrom glue glue
+#' @importFrom data.table fread
 #' @import lubridate
 #' @import zoo
-#' @import plotly
+#' @importFrom plotly plot_ly add_trace rangeslider layout plotlyOutput renderPlotly
+#' @importFrom DT DTOutput renderDT
+#' @importFrom stats mad median na.omit quantile sd
 #' @import ggthemes
 #' @import janitor
 #' @import RSQLite
