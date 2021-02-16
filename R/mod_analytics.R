@@ -7,6 +7,7 @@
 #' @noRd 
 #'
 #' @importFrom shiny NS tagList 
+#' @importFrom readr write_tsv
 mod_analytics_ui <- function(id){
   ns <- NS(id)
   tagList(
@@ -327,11 +328,14 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
   
   output$download_summary = downloadHandler(
     filename = function() {
-      paste0(Sys.Date(), '-', input$study_select, ".csv")
+      paste0(as.character(now()), '-', input$study_select, ".tsv")
     },
     content = function(file) {
-      write_csv(summary_period_data(), path = file)
-    }
+      df = summary_period_data()
+      
+      write_tsv(df, path = file)
+    },
+    contentType = 'text/tsv'
   )
   
   output$period_label_select_ui = renderUI({
