@@ -51,11 +51,18 @@ mod_processing_server <- function(input, output, session, db, CONSTANTS, table_l
   
   output$data_dropdown = renderUI({
     datasets = tbl(db, 'uploaded_files') %>%
-      collect
+      pull(file_name) %>%
+      unique()
+    
+    available_raw = tbl(db, 'raw_uploads') %>%
+      pull(file_name) %>%
+      unique()
+    
+    list_files = intersect(datasets, available_raw)
     
     p = input$refresh_button
     
-    selectInput(ns('data_selection'), 'Data File', choices = datasets$file_name, selected = datasets$file_name[1])
+    selectInput(ns('data_selection'), 'Data File', choices = list_files, selected = list_files[1])
   })
   
   process_datafile = reactive({
