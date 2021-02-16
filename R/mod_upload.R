@@ -47,7 +47,7 @@ mod_upload_ui <- function(id){
     )
   )
 }
-    
+
 #' upload Server Function
 #'
 #' @noRd 
@@ -94,6 +94,19 @@ mod_upload_server <- function(input, output, session, db, CONSTANTS, table_list,
     }
     
     df$glucose = df[,gluc_col]
+    
+    if (is.character(df$glucose) & any(str_detect(df$glucose, fixed(',')))) {
+      df$glucose = df$glucose %>%
+        str_replace_all(fixed(','), '.') %>%
+        as.numeric() 
+    } else if (is.character(df$glucose)) {
+      df$glucose = as.numeric(df$glucose)
+    } 
+    
+    validate (
+      need(!all(is.na(df$glucose)), 'No glucose data found or glucose column is not numeric. Please double check the glucose column.')
+    ) 
+    
     
     df = df %>%
       select(tijd, glucose, file_name) %>%
@@ -262,10 +275,4 @@ mod_upload_server <- function(input, output, session, db, CONSTANTS, table_list,
   })
   
 }
-    
-## To be copied in the UI
-# mod_upload_ui("upload_ui_1")
-    
-## To be copied in the server
-# callModule(mod_upload_server, "upload_ui_1")
- 
+
