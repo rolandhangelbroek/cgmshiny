@@ -42,7 +42,7 @@ mod_processing_ui <- function(id) {
     )
   )
 }
-    
+
 #' processing Server Function
 #'
 #' @noRd 
@@ -111,8 +111,7 @@ mod_processing_server <- function(input, output, session, db, CONSTANTS, table_l
   
   
   output$pro_overview = renderPlotly({
-    # df = process_datafile()
-    
+
     req(process_datafile(), input$data_selection, input$segment_size, input$chunk_distance)
     
     full_data = process_datafile() 
@@ -154,29 +153,32 @@ mod_processing_server <- function(input, output, session, db, CONSTANTS, table_l
   
   observeEvent(input$save_button, {
     
-    interpolated_data = process_datafile() %>%
-      mutate(processed_name = input$data_name)
+    print(input$data_name)
     
-    
-    if (!'interpolated_data' %in% table_list) {
-      cat('Creating interpolated data table\n')
-      dbCreateTable(db, 
-                    'interpolated_data', 
+    if (input$data_name == '' | is.null(input$data_name))  {
+      
+      showNotification('Please give the processed data file a name before saving', type = 'error', session = session)
+      
+    } else {
+
+      interpolated_data = process_datafile() %>%
+        mutate(processed_name = input$data_name)
+      
+      
+      if (!'interpolated_data' %in% table_list) {
+        cat('Creating interpolated data table\n')
+        dbCreateTable(db, 
+                      'interpolated_data', 
+                      interpolated_data)
+      }
+      
+      dbSendQuery(db, "BEGIN")
+      dbAppendTable(db,
+                    'interpolated_data',
                     interpolated_data)
+      dbSendQuery(db, "END")
     }
-    
-    dbSendQuery(db, "BEGIN")
-    dbAppendTable(db,
-                  'interpolated_data',
-                  interpolated_data)
-    dbSendQuery(db, "END")
   })
- 
+  
 }
-    
-## To be copied in the UI
-# mod_processing_ui("processing_ui_1")
-    
-## To be copied in the server
-# callModule(mod_processing_server, "processing_ui_1")
- 
+
