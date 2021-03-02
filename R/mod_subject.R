@@ -248,12 +248,18 @@ mod_subject_server <- function(input, output, session, db, CONSTANTS, table_list
     study_participants = study_info$study_participants[1]
     periods = study_info$study_periods[1]
     
-    new_uploads = dplyr::tbl(db, 'interpolated_data') %>%
-      dplyr::count(processed_name) %>%
-      dplyr::collect() %>%
-      dplyr::pull(processed_name)
+    if ('interpolated_data' %in% dbListTables(db)) {
+      new_uploads = dplyr::tbl(db, 'interpolated_data') %>%
+        dplyr::count(processed_name) %>%
+        dplyr::collect() %>%
+        dplyr::pull(processed_name)
+      
+      updateSelectInput(session, 'dataset_selection', label = 'Plot Dataset', choices = new_uploads, selected = new_uploads[1])
+      
+    } else {
+      updateSelectInput(session, 'dataset_selection', label = 'Plot Dataset', choices = '', selected = '')
+    }
     
-    updateSelectInput(session, 'dataset_selection', label = 'Plot Dataset', choices = new_uploads, selected = new_uploads[1])
     
     for (participant in 1:study_participants) {
       for (period in 1:periods) {

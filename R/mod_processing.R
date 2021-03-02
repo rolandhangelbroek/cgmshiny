@@ -164,8 +164,8 @@ mod_processing_server <- function(input, output, session, db, CONSTANTS, table_l
       interpolated_data = process_datafile() %>%
         mutate(processed_name = input$data_name)
       
-      
-      if (!'interpolated_data' %in% table_list) {
+
+      if (!'interpolated_data' %in% dbListTables(db)) {
         cat('Creating interpolated data table\n')
         dbCreateTable(db, 
                       'interpolated_data', 
