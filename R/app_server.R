@@ -61,6 +61,20 @@ app_server <- function( input, output, session ) {
     
   }
   
+  if (!'healthy_range_low' %in% dbListFields(db, 'studies')) {
+    dbWithTransaction(db, {
+      dbExecute(db, "ALTER TABLE studies ADD COLUMN healthy_range_low INTEGER;")
+      dbExecute(db, "ALTER TABLE studies ADD COLUMN healthy_range_high INTEGER;")
+      dbExecute(db, "ALTER TABLE studies ADD COLUMN healthy_range_very_low INTEGER;")
+      dbExecute(db, "ALTER TABLE studies ADD COLUMN healthy_range_very_high INTEGER;")
+      dbExecute(db, "ALTER TABLE studies ADD COLUMN wake_start INTEGER;")
+      dbExecute(db, "ALTER TABLE studies ADD COLUMN wake_end INTEGER;")
+      dbExecute(db, "ALTER TABLE studies ADD COLUMN sleep_start INTEGER;")
+      dbExecute(db, "ALTER TABLE studies ADD COLUMN sleep_end INTEGER;")
+
+    })
+  }
+  
   if (!'subjects' %in% table_list) {
     cat('Creating empty subject table\n')
     subject_schema = data.frame(study_name = character(),

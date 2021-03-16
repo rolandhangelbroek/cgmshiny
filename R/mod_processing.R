@@ -22,7 +22,7 @@ mod_processing_ui <- function(id) {
       box(
         title = 'Interpolation Settings',
         sliderInput(ns('segment_size'), label = 'Maximum Interpolation Gap (minutes)', min = 15, max = 300, step = 15, value = 60),
-        sliderInput(ns('chunk_distance'), label = 'Time Distance Between Chunks (hours)', min = 1, max = 300, step = 4, value = 100),
+        # sliderInput(ns('chunk_distance'), label = 'Time Distance Between Chunks (hours)', min = 1, max = 300, step = 4, value = 100),
         sliderInput(ns('minute_rounding'), label = 'Round timestamp to whole minutes', min = 5, max = 30, step = 5, value = 15)
       )
     ),
@@ -68,12 +68,12 @@ mod_processing_server <- function(input, output, session, db, CONSTANTS, table_l
   process_datafile = reactive({
     req(input$data_selection)
     req(input$segment_size)
-    req(input$chunk_distance)
+    # req(input$chunk_distance)
     req(input$minute_rounding)
     
     data_file = input$data_selection
     fragment_size = input$segment_size * 60
-    chunk_size = input$chunk_distance * 60 * 60
+    chunk_size = 100 * 60 * 60
     
     selected_data = tbl(db, 'raw_uploads') %>%
       filter(file_name == data_file) %>%
@@ -106,13 +106,15 @@ mod_processing_server <- function(input, output, session, db, CONSTANTS, table_l
   
   
   output$proc_data = renderDT({
+    req(process_datafile())
+    
     process_datafile()
   })
   
   
   output$pro_overview = renderPlotly({
 
-    req(process_datafile(), input$data_selection, input$segment_size, input$chunk_distance)
+    req(process_datafile(), input$data_selection, input$segment_size)
     
     full_data = process_datafile() 
     

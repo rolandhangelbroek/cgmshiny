@@ -15,8 +15,8 @@ mod_setup_ui <- function(id){
         title = 'Study Setup',
         width = 4,
         textInput(ns('study_name'), label = 'Study Name'),
-        textAreaInput(ns('study_description'), label = 'Study Description'),
-        textInput(ns('no_participants'), label = 'Number of subjects'),
+        textAreaInput(ns('study_description'), label = 'Study Description (optional)'),
+        numericInput(ns('no_participants'), label = 'Number of subjects', value = 10),
         sliderInput(ns('groups'), label = 'Study arms', min = 1, max = 10, value = 1),
         sliderInput(ns('periods'), label = 'Periods per subject', min = 1, max = 10, value = 1),
         actionButton(ns('save_button'), label = 'Save Study')
@@ -30,6 +30,23 @@ mod_setup_ui <- function(id){
         title = 'Study arm Naming',
         width = 4,
         uiOutput(ns('intervention_naming'))
+      )
+    ),
+    fluidRow(
+      box(
+        title = 'Glucose range settings (default values in mmol/L)',
+        width = 6,
+        numericInput(ns('healthy_range_low'), 'Lower threshold healthy range', value = 4),
+        numericInput(ns('healthy_range_high'), 'Upper threshold healthy range', value = 10),
+        numericInput(ns('healthy_range_very_low'), 'Very low threshold', value = 3),
+        numericInput(ns('healthy_range_very_high'), 'Very high threshold', value = 14)),
+      box(
+        title = 'Sleep/wake settings (in 24 hour notation)',
+        width = 6,
+        numericInput(ns('wake_start'), 'Wake Start', value = 6),
+        numericInput(ns('wake_end'), 'Wake End', value = 24),
+        numericInput(ns('sleep_start'), 'Sleep Start', value = 0),
+        numericInput(ns('sleep_end'), 'Sleep End', value = 6)
       )
     ),
     fluidRow(
@@ -59,8 +76,6 @@ mod_setup_server <- function(input, output, session, db, CONSTANTS, table_list, 
     
     if (input$study_name == '' || is.null(input$study_name)) {
       showNotification("Please add a study name", type = 'error')
-    } else if (is.na(as.numeric(input$no_participants))) {
-      showNotification("Number of subjects is not numeric", type = 'error')
     } else if (input$study_name %in% current_studies) {
       showNotification("Study name already exists", type = 'error')
     } else {
@@ -69,7 +84,15 @@ mod_setup_server <- function(input, output, session, db, CONSTANTS, table_list, 
       new_study = tibble(study_name = input$study_name,
                          study_description = input$study_description,
                          study_periods = input$periods,
-                         study_participants = as.integer(input$no_participants))
+                         study_participants = input$no_participants,
+                         healthy_range_low = input$healthy_range_low,
+                         healthy_range_high = input$healthy_range_high,
+                         healthy_range_very_low = input$healthy_range_very_low,
+                         healthy_range_very_high = input$healthy_range_very_high,
+                         wake_start = input$wake_start,
+                         wake_end = input$wake_end,
+                         sleep_start = input$sleep_start,
+                         sleep_end = input$sleep_end)
       
       period_names = tibble(
         study_name = input$study_name,

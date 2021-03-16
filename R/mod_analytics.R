@@ -62,7 +62,7 @@ mod_analytics_ui <- function(id){
     )
   )
 }
-    
+
 #' analytics Server Function
 #'
 #' @noRd 
@@ -70,6 +70,8 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
   ns = session$ns
   
   get_subject_data = reactive({
+    req(input$study_select)
+    
     study_selection = input$study_select
     
     subjects = tbl(db, 'subjects') %>%
@@ -93,7 +95,32 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
     return(subject_info)
   })
   
+  study_settings = reactive({
+    req(input$study_select)
+    study_selection = input$study_select
+    
+    study_info = dplyr::tbl(db, 'studies') %>%
+      dplyr::collect() %>%
+      dplyr::filter(study_name == study_selection) %>%
+      as.data.frame(stringsAsFactors = FALSE)
+    
+    cutoff_data = list(
+      HEALTHY_RANGE_LOW = ifelse(is.na(study_info$healthy_range_low[1]), 4, study_info$healthy_range_low[1]),
+      HEALTHY_RANGE_HIGH = ifelse(is.na(study_info$healthy_range_high[1]), 10, study_info$healthy_range_high[1]),
+      HEALTHY_RANGE_VERY_LOW = ifelse(is.na(study_info$healthy_range_very_low[1]), 3, study_info$healthy_range_very_low[1]),
+      HEALTHY_RANGE_VERY_HIGH = ifelse(is.na(study_info$healthy_range_very_high[1]), 14, study_info$healthy_range_very_high[1]),
+      SLEEP_START = ifelse(is.na(study_info$sleep_start[1]), 0, study_info$sleep_start[1]),
+      SLEEP_END = ifelse(is.na(study_info$sleep_end[1]), 6, study_info$sleep_end[1]),
+      WAKE_START = ifelse(is.na(study_info$wake_start[1]), 6, study_info$wake_start[1]),
+      WAKE_END =  ifelse(is.na(study_info$wake_end[1]), 24, study_info$wake_end[1])
+    )
+    
+    return(cutoff_data)
+  })
+  
+  
   get_period_data = reactive({
+    req(get_subject_data())
     subject_data = get_subject_data() 
     
     if (is.null(subject_data)) return(NULL)
@@ -135,7 +162,10 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
   })
   
   summary_period_data = reactive({
+    req(get_period_data(), study_settings())
+    
     period_data = get_period_data()
+    study_settings = study_settings()
     
     if (is.null(period_data)) return(NULL)
     
@@ -195,17 +225,17 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
                 interpolated_percentage = sum(interpolated, na.rm = TRUE) / value_count * 100)
     
     summary_df_all_values = summary_df %>%
-      calculate_analytics_metrics(const = CONSTANTS)
+      calculate_analytics_metrics(const = study_settings)
     
     summary_df_wake = summary_df %>%
-      filter(hour(tijd) >= CONSTANTS$WAKE_START,
-             hour(tijd) < CONSTANTS$WAKE_END) %>%
-      calculate_analytics_metrics(prefix = 'wake', const = CONSTANTS)
+      filter(hour(tijd) >= study_settings$WAKE_START,
+             hour(tijd) < study_settings$WAKE_END) %>%
+      calculate_analytics_metrics(prefix = 'wake', const = study_settings)
     
     summary_df_sleep = summary_df %>%
-      filter(hour(tijd) >= CONSTANTS$SLEEP_START,
-             hour(tijd) < CONSTANTS$SLEEP_END) %>%
-      calculate_analytics_metrics(prefix = 'sleep', const = CONSTANTS)
+      filter(hour(tijd) >= study_settings$SLEEP_START,
+             hour(tijd) < study_settings$SLEEP_END) %>%
+      calculate_analytics_metrics(prefix = 'sleep', const = study_settings)
     
     summary_df = full_join(summary_df_general, summary_df_all_values) %>%
       full_join(summary_df_wake) %>%
@@ -229,6 +259,8 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
   })
   
   output$data = renderDT({
+    req(summary_period_data())
+    
     if (is.null(summary_period_data())) {
       data.frame(message = 'Empty data. Did you correctly specify subject data?')
     } else {
@@ -238,6 +270,9 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
   }, options = list(scrollX = TRUE))
   
   output$all_plot = renderPlot({
+    req( get_period_data())
+    
+    study_settings = study_settings()
     
     full_data = get_period_data() %>%
       mutate(timestep = hour(tijd) * 60 + minute(tijd)) 
@@ -265,10 +300,10 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
     
     
     plt = ggplot(aes(x = timestep), data = df_summary) +
-      geom_hline(yintercept = CONSTANTS$HEALTHY_RANGE_LOW, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'orange') +
-      geom_hline(yintercept = CONSTANTS$HEALTHY_RANGE_HIGH, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'orange') +
-      geom_hline(yintercept = CONSTANTS$HEALTHY_RANGE_VERY_LOW, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'red') +
-      geom_hline(yintercept = CONSTANTS$HEALTHY_RANGE_VERY_HIGH, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'red') +
+      geom_hline(yintercept = study_settings$HEALTHY_RANGE_LOW, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'orange') +
+      geom_hline(yintercept = study_settings$HEALTHY_RANGE_HIGH, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'orange') +
+      geom_hline(yintercept = study_settings$HEALTHY_RANGE_VERY_LOW, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'red') +
+      geom_hline(yintercept = study_settings$HEALTHY_RANGE_VERY_HIGH, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'red') +
       geom_line(aes(y = median_glucose), color = 'blue') +
       geom_ribbon(aes(ymin = low_10_glucose, ymax = high_90_glucose), fill = 'blue', alpha = 1/6) +
       geom_ribbon(aes(ymin = low_q_glucose, ymax = high_q_glucose), fill = 'blue', alpha = 1/6) +
@@ -282,6 +317,10 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
   })
   
   output$group_plot = renderPlot({
+    
+    req(get_period_data())
+    
+    study_settings = study_settings()
     
     full_data = get_period_data() %>%
       mutate(timestep = hour(tijd) * 60 + minute(tijd)) 
@@ -307,10 +346,10 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
       filter((num + 1) %% 4 == 0)
     
     plt = ggplot(aes(x = timestep), data = df_summary) +
-      geom_hline(yintercept = CONSTANTS$HEALTHY_RANGE_LOW, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'orange') +
-      geom_hline(yintercept = CONSTANTS$HEALTHY_RANGE_HIGH, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'orange') +
-      geom_hline(yintercept = CONSTANTS$HEALTHY_RANGE_VERY_LOW, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'red') +
-      geom_hline(yintercept = CONSTANTS$HEALTHY_RANGE_VERY_HIGH, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'red') +
+      geom_hline(yintercept = study_settings$HEALTHY_RANGE_LOW, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'orange') +
+      geom_hline(yintercept = study_settings$HEALTHY_RANGE_HIGH, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'orange') +
+      geom_hline(yintercept = study_settings$HEALTHY_RANGE_VERY_LOW, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'red') +
+      geom_hline(yintercept = study_settings$HEALTHY_RANGE_VERY_HIGH, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'red') +
       geom_line(aes(y = median_glucose, color = subject_group, fill = subject_group)) +
       geom_ribbon(aes(ymin = low_10_glucose, ymax = high_90_glucose, color = subject_group, fill = subject_group), alpha = 1/6) +
       geom_ribbon(aes(ymin = low_q_glucose, ymax = high_q_glucose, color = subject_group, fill = subject_group), alpha = 1/6) +
@@ -339,6 +378,7 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
   )
   
   output$period_label_select_ui = renderUI({
+    req(get_period_data())
     all_data = get_period_data()
     
     options = all_data$subject_period_label %>% unique
@@ -348,7 +388,10 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
   })
   
   output$period_specific_plot = renderPlot({
+    req(get_period_data())
     subj_period = input$period_label_select
+    study_settings = study_settings()
+    
     
     full_data = get_period_data() %>%
       filter(subject_period_label == subj_period) %>%
@@ -376,10 +419,10 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
     
     
     plt = ggplot(aes(x = timestep), data = df_summary) +
-      geom_hline(yintercept = CONSTANTS$HEALTHY_RANGE_LOW, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'orange') +
-      geom_hline(yintercept = CONSTANTS$HEALTHY_RANGE_HIGH, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'orange') +
-      geom_hline(yintercept = CONSTANTS$HEALTHY_RANGE_VERY_LOW, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'red') +
-      geom_hline(yintercept = CONSTANTS$HEALTHY_RANGE_VERY_HIGH, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'red') +
+      geom_hline(yintercept = study_settings$HEALTHY_RANGE_LOW, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'orange') +
+      geom_hline(yintercept = study_settings$HEALTHY_RANGE_HIGH, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'orange') +
+      geom_hline(yintercept = study_settings$HEALTHY_RANGE_VERY_LOW, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'red') +
+      geom_hline(yintercept = study_settings$HEALTHY_RANGE_VERY_HIGH, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'red') +
       geom_line(aes(y = median_glucose), color = 'blue') +
       geom_ribbon(aes(ymin = low_10_glucose, ymax = high_90_glucose), fill = 'blue', alpha = 1/6) +
       geom_ribbon(aes(ymin = low_q_glucose, ymax = high_q_glucose), fill = 'blue', alpha = 1/6) +
@@ -392,10 +435,10 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
     return(plt)
   })
 }
-    
+
 ## To be copied in the UI
 # mod_analytics_ui("analytics_ui_1")
-    
+
 ## To be copied in the server
 # callModule(mod_analytics_server, "analytics_ui_1")
- 
+

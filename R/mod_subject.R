@@ -235,6 +235,7 @@ mod_subject_server <- function(input, output, session, db, CONSTANTS, table_list
   })
   
   observe({
+    p = input$refresh_button
     
     req(input$study_select)
     
@@ -271,6 +272,8 @@ mod_subject_server <- function(input, output, session, db, CONSTANTS, table_list
   
   output$subject_table_ui = renderUI({
     req(input$study_select)
+    
+    p = input$refresh_button
     
     study_sele = input$study_select
     
