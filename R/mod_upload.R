@@ -17,7 +17,7 @@ mod_upload_ui <- function(id){
         fileInput(ns('up_files'), label = 'Data', multiple = TRUE, accept = c('text/csv', 'text/plain')),
         textInput(ns('up_skip'), label = 'Skip Lines', value = '2'),
         selectInput(ns('up_timestamp_column'), label = 'Date & Time Columns', choices = NULL, multiple = TRUE),
-        selectInput(ns('up_timestamp_format'), label = 'Date & Time Format', choices = c('dmy_hm', 'dmy_hms', 'ymd_hm', 'ymd_hms'), selected = 'dmy_hm'),
+        selectInput(ns('up_timestamp_format'), label = 'Date & Time Format', choices = c('dmy_hm', 'dmy_hms', 'ymd_hm', 'ymd_hms', 'mdy_hm', 'mdy_hms'), selected = 'dmy_hm'),
         selectInput(ns('up_glucose_column'), label = 'Glucose Column', choices = NULL),
         actionButton(ns('up_upload_button'), label = 'Add to database')
       ),
