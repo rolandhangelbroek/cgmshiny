@@ -292,12 +292,11 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
       mutate(missing_percentage = missings / value_count * 100,
              interpolated_percentage = interpolated_n / value_count * 100)
     
+    timesteps = unique(full_data$timestep)
+    
     markup = tibble(xlabel = paste0(df_summary$timestep %/% 60, ':', df_summary$timestep %% 60),
-                    timestep = df_summary$timestep,
-                    num = 1:96) %>%
-      filter((num + 1) %% 4 == 0)
-    
-    
+                    timestep = df_summary$timestep) %>%
+      filter(dplyr::row_number() %% 4 == 3)
     
     plt = ggplot(aes(x = timestep), data = df_summary) +
       geom_hline(yintercept = study_settings$HEALTHY_RANGE_LOW, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'orange') +
@@ -340,10 +339,9 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
       mutate(missing_percentage = missings / value_count * 100,
              interpolated_percentage = interpolated_n / value_count * 100)
     
-    markup = tibble(xlabel = paste0(df_summary$timestep %>% unique %/% 60, ':', df_summary$timestep %>% unique %% 60),
-                    timestep = df_summary$timestep %>% unique,
-                    num = 1:96) %>%
-      filter((num + 1) %% 4 == 0)
+    markup = tibble(xlabel = paste0(df_summary$timestep %/% 60, ':', df_summary$timestep %% 60),
+                    timestep = df_summary$timestep) %>%
+      filter(dplyr::row_number() %% 4 == 3)
     
     plt = ggplot(aes(x = timestep), data = df_summary) +
       geom_hline(yintercept = study_settings$HEALTHY_RANGE_LOW, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'orange') +
@@ -413,10 +411,8 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
              interpolated_percentage = interpolated_n / value_count * 100)
     
     markup = tibble(xlabel = paste0(df_summary$timestep %/% 60, ':', df_summary$timestep %% 60),
-                    timestep = df_summary$timestep,
-                    num = 1:96) %>%
-      filter((num + 1) %% 4 == 0)
-    
+                    timestep = df_summary$timestep) %>%
+      filter(dplyr::row_number() %% 4 == 3)
     
     plt = ggplot(aes(x = timestep), data = df_summary) +
       geom_hline(yintercept = study_settings$HEALTHY_RANGE_LOW, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'orange') +
@@ -435,10 +431,4 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
     return(plt)
   })
 }
-
-## To be copied in the UI
-# mod_analytics_ui("analytics_ui_1")
-
-## To be copied in the server
-# callModule(mod_analytics_server, "analytics_ui_1")
 

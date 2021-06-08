@@ -321,10 +321,4 @@ mod_subject_server <- function(input, output, session, db, CONSTANTS, table_list
     
   })
 }
-    
-## To be copied in the UI
-# mod_subject_ui("subject_ui_1")
-    
-## To be copied in the server
-# callModule(mod_subject_server, "subject_ui_1")
- 
+
