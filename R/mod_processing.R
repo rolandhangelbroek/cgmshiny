@@ -23,7 +23,8 @@ mod_processing_ui <- function(id) {
         title = 'Interpolation Settings',
         sliderInput(ns('segment_size'), label = 'Maximum Interpolation Gap (minutes)', min = 15, max = 300, step = 15, value = 60),
         # sliderInput(ns('chunk_distance'), label = 'Time Distance Between Chunks (hours)', min = 1, max = 300, step = 4, value = 100),
-        sliderInput(ns('minute_rounding'), label = 'Round timestamp to whole minutes', min = 5, max = 30, step = 5, value = 15)
+        sliderInput(ns('minute_rounding'), label = 'Round timestamp to whole minutes', min = 5, max = 30, step = 5, value = 15),
+        sliderInput(ns('remove_start_hours'), label = 'Remove first number of hours for each chunk', min = 0, max = 48, step = 1, value = 0)
       )
     ),
     fluidRow(
@@ -70,7 +71,9 @@ mod_processing_server <- function(input, output, session, db, CONSTANTS, table_l
     req(input$segment_size)
     # req(input$chunk_distance)
     req(input$minute_rounding)
+    req(input$remove_start_hours)
     
+    remove_start_hours = input$remove_start_hours
     data_file = input$data_selection
     fragment_size = input$segment_size * 60
     chunk_size = 100 * 60 * 60
@@ -96,6 +99,7 @@ mod_processing_server <- function(input, output, session, db, CONSTANTS, table_l
              segment = segment %>% as.character,
              chunk = chunk %>% as.character) %>% 
       group_by(chunk) %>%
+      filter(tijd >= min(tijd) + hours(remove_start_hours)) %>%
       complete(tijd = seq(from = min(tijd), 
                           to = max(tijd),  
                           by = as.difftime(input$minute_rounding, units = 'mins'))) %>%
