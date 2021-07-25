@@ -15,6 +15,28 @@ iAUC_trapz = function (x, y, na.rm = FALSE) {
   trapz(x, y)
 }
 
+process_upload = function (file_location, file_name, skip_arg) {
+  
+  tryCatch(
+    {
+      
+      if (skip_arg == '') skip_arg = 0
+      
+      file_name = paste0(now() %>% as.character() %>% str_replace_all('[[:punct:]]', '_') %>% str_replace('\\ ', '_'), '__', file_name)
+      
+      df = fread(file_location, skip = skip_arg) %>% 
+        clean_names() %>%
+        as.data.frame() %>%
+        mutate(file_name = file_name) 
+      
+      return(df)
+      
+    },
+    error = function(e) {
+      stop(safeError(e))
+    })
+}
+
 AUC_trapz = function (x, y, na.rm = FALSE) {
   if (na.rm == TRUE) {
     missing = is.na(y)

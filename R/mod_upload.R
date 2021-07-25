@@ -59,27 +59,7 @@ mod_upload_server <- function(input, output, session, db, CONSTANTS, table_list,
       enframe(name = NULL, value = 'line')
   }
   
-  process_upload = function (file_location, file_name, skip_arg) {
-    
-    tryCatch(
-      {
-        
-        if (skip_arg == '') skip_arg = 0
-        
-        file_name = paste0(now() %>% as.character() %>% str_replace_all('[[:punct:]]', '_') %>% str_replace('\\ ', '_'), '__', file_name)
-        
-        df = fread(file_location, skip = skip_arg) %>% 
-          clean_names() %>%
-          as.data.frame() %>%
-          mutate(file_name = file_name) 
-        
-        return(df)
-        
-      },
-      error = function(e) {
-        stop(safeError(e))
-      })
-  }
+
   
   finalize_upload = function (raw_df, dt_cols, gluc_col, ts_fmt) {
     if (any(dt_cols == '', gluc_col == '', is.null(dt_cols), is.null(gluc_col))) return(NULL)

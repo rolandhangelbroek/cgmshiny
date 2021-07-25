@@ -15,21 +15,30 @@ mod_analytics_ui <- function(id){
       box(
         title = 'Data Selection',
         uiOutput(ns('study_select_ui')),
-        selectInput(ns('summary_level'), label = 'Summarize by', choices = c('Period' = 'period', 'Day' = 'day', 'Meals' = 'meals'), selected = 'period')
+        selectInput(ns('summary_level'), label = 'Summarize by', choices = c('Period' = 'period', 'Day' = 'day', 'Meals' = 'meals', 'Custom Meals' = 'cust_meals'), selected = 'period')
       ),
-      box(
-        title = 'Meal Specification',
-        column(
-          width = 6,
+      tabBox(
+        id = 'meal_tabs',
+        
+        tabPanel(
+          title = 'Meal Specification',
+          # column(
+          #   width = 6,
           textInput(ns('breakfast_start'), label = 'Breakfast Start', value = "07:00"),
           textInput(ns('lunch_start'), label = 'Lunch Start', value = "12:00"),
-          textInput(ns('dinner_start'), label = 'Dinner Start', value = "18:00")
-        ),
-        column(
-          width = 6,
+          textInput(ns('dinner_start'), label = 'Dinner Start', value = "18:00"),
+          # ),
+          # column(
+          #   width = 6,
           textInput(ns('breakfast_end'), label = 'Breakfast End', value = '8:00'),
           textInput(ns('lunch_end'), label = 'Lunch End', value = '13:30'),
           textInput(ns('dinner_end'), label = 'Dinner End', value = '19:30')
+          # )
+        ),
+        tabPanel(
+          title = 'Custom Meal Specification',
+          fileInput(ns('meal_file'), label = 'Meal file', multiple = FALSE, accept = c('text/csv', 'text/plain')),
+          sliderInput(ns('meal_duration'), label = 'Meal duration (minutes)', min = 5, max = 300, step = 5, value = 90)
         )
       )
     ),
@@ -38,7 +47,8 @@ mod_analytics_ui <- function(id){
         width = 12,
         title = 'Summary Data',
         DTOutput(ns('data')),
-        downloadButton(ns('download_summary'), label = 'Download')
+        downloadButton(ns('download_summary'), label = 'Download Summary Statistics'),
+        downloadButton(ns('download_raw'), label = 'Download Processed Data'),
       )
     ),
     fluidRow(
@@ -116,6 +126,29 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
     )
     
     return(cutoff_data)
+  })
+  
+  meal_df = reactive({
+    p = input$meal_file$datapath
+    n = input$meal_file$name
+    df_t = process_upload(file_location = p, 
+                          file_name = n, 
+                          skip_arg = 0)
+    
+    df_t = df_t[,1:3]
+    
+    names(df_t) = c('subject_id', 'start_time', 'meal_name')
+    
+    df_t = distinct(df_t)
+    
+    df_t = df_t %>%
+      group_by(subject_id) %>%
+      mutate(start_time = start_time %>% parse_date(),
+             end_time = start_time + minutes(input$meal_duration),
+             meal_name = glue('{meal_name}_{day(start_time)}_{month(start_time)}_{year(start_time)}')) %>%
+      ungroup
+    
+    return(df_t)
   })
   
   
@@ -210,7 +243,30 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
                )) %>%
         ungroup %>%
         group_by(day, subject_period_label, meal)
-    } 
+    } else if (input$summary_level == 'cust_meals') {
+      bloop = meal_df() %>%
+        as.list %>%
+        transpose
+      
+      parse_meal_data = function (gluc_df, meal_data) {
+        gluc_df %>%
+          filter(tijd >= as.POSIXct(meal_data$start_time[1], origin = "1970-01-01"),
+                 tijd <=as.POSIXct(meal_data$end_time[1], origin = "1970-01-01"),
+                 subject_id == meal_data$subject_id[1]) %>%
+          mutate(subject_period_label = meal_data$meal_name)
+      }
+      
+      print(bloop)
+      
+      summary_df = map_dfr(bloop, parse_meal_data, gluc_df = period_data) %>%
+        arrange(tijd) %>%
+        group_by(subject_period_label) %>%
+        mutate(day = date(tijd) %>% as.character %>% as.factor %>% as.numeric,
+               date = date(tijd))
+      
+
+      
+    }
     
     summary_df_general = summary_df %>%
       summarize(subject_id = first(subject_id),
@@ -294,9 +350,9 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
     
     timesteps = unique(full_data$timestep)
     
-    markup = tibble(xlabel = paste0(df_summary$timestep %/% 60, ':', df_summary$timestep %% 60),
+    markup = tibble(xlabel = paste0(df_summary$timestep %/% 60, ':00'),
                     timestep = df_summary$timestep) %>%
-      filter(dplyr::row_number() %% 4 == 3)
+      filter(timestep %% 120 == 0)
     
     plt = ggplot(aes(x = timestep), data = df_summary) +
       geom_hline(yintercept = study_settings$HEALTHY_RANGE_LOW, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'orange') +
@@ -339,9 +395,9 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
       mutate(missing_percentage = missings / value_count * 100,
              interpolated_percentage = interpolated_n / value_count * 100)
     
-    markup = tibble(xlabel = paste0(df_summary$timestep %/% 60, ':', df_summary$timestep %% 60),
+    markup = tibble(xlabel = paste0(df_summary$timestep %/% 60, ':00'),
                     timestep = df_summary$timestep) %>%
-      filter(dplyr::row_number() %% 4 == 3)
+      filter(timestep %% 120 == 0)
     
     plt = ggplot(aes(x = timestep), data = df_summary) +
       geom_hline(yintercept = study_settings$HEALTHY_RANGE_LOW, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'orange') +
@@ -365,10 +421,22 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
   
   output$download_summary = downloadHandler(
     filename = function() {
-      paste0(as.character(now()), '-', input$study_select, ".tsv")
+      paste0(as.character(now()), '-', input$study_select, "summary.tsv")
     },
     content = function(file) {
       df = summary_period_data()
+      
+      write_tsv(df, path = file)
+    },
+    contentType = 'text/tsv'
+  )
+  
+  output$download_raw = downloadHandler(
+    filename = function() {
+      paste0(as.character(now()), '-', input$study_select, "_raw.tsv")
+    },
+    content = function(file) {
+      df = get_period_data()
       
       write_tsv(df, path = file)
     },
@@ -410,9 +478,9 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
       mutate(missing_percentage = missings / value_count * 100,
              interpolated_percentage = interpolated_n / value_count * 100)
     
-    markup = tibble(xlabel = paste0(df_summary$timestep %/% 60, ':', df_summary$timestep %% 60),
+    markup = tibble(xlabel = paste0(df_summary$timestep %/% 60, ':00'),
                     timestep = df_summary$timestep) %>%
-      filter(dplyr::row_number() %% 4 == 3)
+      filter(timestep %% 120 == 0)
     
     plt = ggplot(aes(x = timestep), data = df_summary) +
       geom_hline(yintercept = study_settings$HEALTHY_RANGE_LOW, alpha = 1/3, linetype = 'dashed', size = 1.2, color = 'orange') +
