@@ -38,6 +38,7 @@ mod_analytics_ui <- function(id){
         tabPanel(
           title = 'Custom Meal Specification',
           fileInput(ns('meal_file'), label = 'Meal file', multiple = FALSE, accept = c('text/csv', 'text/plain')),
+          selectInput(ns('meal_timestamp_format'), label = 'Date & Time Format', choices = c('dmy_hm', 'dmy_hms', 'ymd_hm', 'ymd_hms', 'mdy_hm', 'mdy_hms'), selected = 'dmy_hm'),
           sliderInput(ns('meal_duration'), label = 'Meal duration (minutes)', min = 5, max = 300, step = 5, value = 90)
         )
       )
@@ -139,14 +140,19 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
     
     names(df_t) = c('subject_id', 'start_time', 'meal_name')
     
+    ts_fmt = input$meal_timestamp_format
+    
     df_t = distinct(df_t)
     
     df_t = df_t %>%
+      ungroup %>%
+      mutate(start_time = do.call(ts_fmt, list(start_time))) %>%
       group_by(subject_id) %>%
-      mutate(start_time = start_time %>% parse_date(),
-             end_time = start_time + minutes(input$meal_duration),
+      mutate(end_time = start_time + minutes(input$meal_duration),
              meal_name = glue('{meal_name}_{day(start_time)}_{month(start_time)}_{year(start_time)}')) %>%
       ungroup
+    
+    print(head(df_t))
     
     return(df_t)
   })
@@ -264,7 +270,7 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
         mutate(day = date(tijd) %>% as.character %>% as.factor %>% as.numeric,
                date = date(tijd))
       
-
+      
       
     }
     

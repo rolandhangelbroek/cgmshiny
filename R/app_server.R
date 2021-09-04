@@ -12,7 +12,6 @@
 #' @import shiny
 #' @import DBI
 #' @importFrom readr write_tsv
-#' @importFrom parsedate parse_date
 #' @importFrom glue glue
 #' @importFrom data.table fread
 #' @import lubridate
@@ -22,6 +21,7 @@
 #' @importFrom stats mad median na.omit quantile sd
 #' @import ggthemes
 #' @import janitor
+#' @import snakecase
 #' @import RSQLite
 #' @import caTools
 #' @noRd

@@ -22,7 +22,7 @@ process_upload = function (file_location, file_name, skip_arg) {
       
       if (skip_arg == '') skip_arg = 0
       
-      file_name = paste0(now() %>% as.character() %>% str_replace_all('[[:punct:]]', '_') %>% str_replace('\\ ', '_'), '__', file_name)
+      file_name = paste0(format(now(), "%Y%m%d_%H%M%S_"), file_name)
       
       df = fread(file_location, skip = skip_arg) %>% 
         clean_names() %>%
