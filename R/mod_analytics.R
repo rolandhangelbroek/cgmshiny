@@ -37,9 +37,18 @@ mod_analytics_ui <- function(id){
         ),
         tabPanel(
           title = 'Custom Meal Specification',
-          fileInput(ns('meal_file'), label = 'Meal file', multiple = FALSE, accept = c('text/csv', 'text/plain')),
-          selectInput(ns('meal_timestamp_format'), label = 'Date & Time Format', choices = c('dmy_hm', 'dmy_hms', 'ymd_hm', 'ymd_hms', 'mdy_hm', 'mdy_hms'), selected = 'dmy_hm'),
-          sliderInput(ns('meal_duration'), label = 'Meal duration (minutes)', min = 5, max = 300, step = 5, value = 90)
+          fluidRow(
+            column(
+              width = 6,
+              fileInput(ns('meal_file'), label = 'Meal file', multiple = FALSE, accept = c('text/csv', 'text/plain')),
+              selectInput(ns('meal_timestamp_format'), label = 'Date & Time Format', choices = c('dmy_hm', 'dmy_hms', 'ymd_hm', 'ymd_hms', 'mdy_hm', 'mdy_hms'), selected = 'dmy_hm'),
+              sliderInput(ns('meal_duration'), label = 'Meal duration (minutes)', min = 5, max = 300, step = 5, value = 90)
+            ),
+            column(
+              width = 6,
+              DTOutput(ns('custom_meal_table_dt'))
+            )
+          )
         )
       )
     ),
@@ -143,16 +152,15 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
     ts_fmt = input$meal_timestamp_format
     
     df_t = distinct(df_t)
-    
+
     df_t = df_t %>%
       ungroup %>%
-      mutate(start_time = do.call(ts_fmt, list(start_time))) %>%
+      mutate(start_time = do.call(ts_fmt, list(start_time)),
+             start_time = with_tz(start_time, 'UTC')) %>%
       group_by(subject_id) %>%
       mutate(end_time = start_time + minutes(input$meal_duration),
              meal_name = glue('{meal_name}_{day(start_time)}_{month(start_time)}_{year(start_time)}')) %>%
       ungroup
-    
-    print(head(df_t))
     
     return(df_t)
   })
@@ -256,13 +264,13 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
       
       parse_meal_data = function (gluc_df, meal_data) {
         gluc_df %>%
-          filter(tijd >= as.POSIXct(meal_data$start_time[1], origin = "1970-01-01"),
-                 tijd <=as.POSIXct(meal_data$end_time[1], origin = "1970-01-01"),
-                 subject_id == meal_data$subject_id[1]) %>%
+          mutate(tijd = with_tz(tijd, 'UTC')) %>%
+          filter(
+            as.integer(tijd) >= meal_data$start_time[1],
+            as.integer(tijd) <= meal_data$end_time[1],
+            subject_id == meal_data$subject_id[1]) %>%
           mutate(subject_period_label = meal_data$meal_name)
       }
-      
-      print(bloop)
       
       summary_df = map_dfr(bloop, parse_meal_data, gluc_df = period_data) %>%
         arrange(tijd) %>%
@@ -503,6 +511,10 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
       theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
     
     return(plt)
+  })
+  
+  output$custom_meal_table_dt = renderDT({
+    meal_df()
   })
 }
 

@@ -128,8 +128,11 @@ mod_upload_server <- function(input, output, session, db, CONSTANTS, table_list,
                         gluc_col = input$up_glucose_column,
                         ts_fmt = input$up_timestamp_format)
       
-      file_name = n
-      file_name = paste0(now() %>% as.character() %>% str_replace_all('[[:punct:]]', '_') %>% str_replace('\\ ', '_'), '__', file_name)
+      # file_name = n
+      # file_name = paste0(now() %>% as.character() %>% str_replace_all('[[:punct:]]', '_') %>% str_replace('\\ ', '_'), '__', file_name)
+      # 
+      
+      file_name = first(df$file_name)
       
       new_file = tibble(file_name = file_name, 
                         upload_date = now())

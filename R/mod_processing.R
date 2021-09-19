@@ -59,7 +59,9 @@ mod_processing_server <- function(input, output, session, db, CONSTANTS, table_l
       pull(file_name) %>%
       unique()
     
-    list_files = intersect(datasets, available_raw)
+    # list_files = intersect(datasets, available_raw)
+    
+    list_files = datasets
     
     p = input$refresh_button
     
@@ -117,7 +119,7 @@ mod_processing_server <- function(input, output, session, db, CONSTANTS, table_l
   
   
   output$pro_overview = renderPlotly({
-
+    
     req(process_datafile(), input$data_selection, input$segment_size)
     
     full_data = process_datafile() 
@@ -158,19 +160,17 @@ mod_processing_server <- function(input, output, session, db, CONSTANTS, table_l
   
   
   observeEvent(input$save_button, {
-    
-    print(input$data_name)
-    
+
     if (input$data_name == '' | is.null(input$data_name))  {
       
       showNotification('Please give the processed data file a name before saving', type = 'error', session = session)
       
     } else {
-
+      
       interpolated_data = process_datafile() %>%
         mutate(processed_name = input$data_name)
       
-
+      
       if (!'interpolated_data' %in% dbListTables(db)) {
         cat('Creating interpolated data table\n')
         dbCreateTable(db, 
