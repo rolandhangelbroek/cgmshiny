@@ -181,7 +181,7 @@ mod_analytics_server <- function(input, output, session, db, CONSTANTS, table_li
       filter(processed_name %in% selected_periods) %>%
       collect() %>%
       select(tijd, glucose, processed_name, interpolated) %>%
-      mutate(tijd = as.POSIXct(tijd, origin = '1970-01-01'),
+      mutate(tijd = as.POSIXct(tijd, origin = '1970-01-01') %>% with_tz('UTC'),
              subject_period_label = NA) 
     
     get_period = function (subj_row_id) {

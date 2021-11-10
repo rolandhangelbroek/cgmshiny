@@ -90,7 +90,7 @@ mod_upload_server <- function(input, output, session, db, CONSTANTS, table_list,
     
     df = df %>%
       select(tijd, glucose, file_name) %>%
-      mutate(tijd = do.call(ts_fmt, list(tijd)),
+      mutate(tijd = do.call(ts_fmt, list(tijd)) %>% with_tz('UTC'),
              unix_t = as.numeric(tijd)) %>%
       arrange(tijd) %>%
       na.omit() 

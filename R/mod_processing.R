@@ -83,7 +83,7 @@ mod_processing_server <- function(input, output, session, db, CONSTANTS, table_l
     selected_data = tbl(db, 'raw_uploads') %>%
       filter(file_name == data_file) %>%
       collect() %>%
-      mutate(tijd = as.POSIXct(tijd, origin = '1970-01-01')) %>%
+      mutate(tijd = as.POSIXct(tijd, origin = '1970-01-01') %>% with_tz('UTC')) %>%
       mutate(segment = ifelse((unix_t - lag(unix_t, 1)) > fragment_size, 1, 0),
              segment = replace_na(segment, 0) %>% cumsum,
              segment = segment + 1) %>%
