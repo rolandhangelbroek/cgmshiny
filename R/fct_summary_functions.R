@@ -1,4 +1,4 @@
-iAUC_trapz = function (x, y, na.rm = FALSE) {
+iAUC_trapz = function (x, y, na.rm = FALSE, method = 'net') {
   if (na.rm == TRUE) {
     missing = is.na(y)
     y = y[!missing]
@@ -12,7 +12,25 @@ iAUC_trapz = function (x, y, na.rm = FALSE) {
   x = x - x[1]
   y = y - y[1]
   
-  trapz(x, y)
+  if (method == 'net') {
+    trapz(x, y) 
+  } else if (method == 'positive') {
+    
+    above_baseline = y >= 0
+    zero_intersects = which(diff(above_baseline) != 0)
+    x_intersect = x[zero_intersects]
+    y_intersect = y[zero_intersects]
+    slopes = y[zero_intersects+1] - y[zero_intersects]
+    true_zeros = x_intersect + abs((1 / slopes) * y_intersect * diff(x)[zero_intersects])
+    
+    x_new = c(x, true_zeros)
+    y_new = c(y, rep(0, length(true_zeros)))
+    y_new[y_new < 0] = 0
+    
+    trapz(x_new, y_new)
+  } else {
+    stop("Method not implemented")
+  }
 }
 
 process_upload = function (file_location, file_name, skip_arg) {
@@ -64,7 +82,9 @@ AUC_timed = function (t, gluc, lb, ub, mode = 'AUC', ...) {
   if (mode == 'AUC') {
     ret = AUC_trapz(df$time, df$glucose, ...)
   } else if (mode == 'iAUC') {
-    ret = iAUC_trapz(df$time, df$glucose, ...)
+    ret = iAUC_trapz(df$time, df$glucose, method = 'net', ...)
+  } else if (mode == 'positive_iAUC') {
+    ret = iAUC_trapz(df$time, df$glucose, method = 'positive',...)
   }
   
   return(ret)
@@ -117,8 +137,10 @@ calculate_analytics_metrics = function (df, prefix  = NULL, const = CONSTANTS) {
               tir_timeabove7.8mmolL = sum(glucose > 7.8, na.rm = TRUE) / sum(!is.na(glucose)),
               AUC = AUC_trapz(tijd, glucose),
               AUC_ignore_missing = AUC_trapz(tijd, glucose, na.rm = TRUE),
-              iAUC = iAUC_trapz(tijd, glucose),
-              iAUC_ignore_missing = iAUC_trapz(tijd, glucose, na.rm = TRUE),
+              net_iAUC = iAUC_trapz(tijd, glucose, method = 'net'),
+              net_iAUC_ignore_missing = iAUC_trapz(tijd, glucose, method = 'net', na.rm = TRUE),
+              positive_iAUC = iAUC_trapz(tijd, glucose, method = 'positive'),
+              positive_iAUC_ignore_missing = iAUC_trapz(tijd, glucose, method = 'positive', na.rm = TRUE),
               MODD = calculate_MODD(tijd, glucose),
               MAGE = calculate_MAGE(tijd, glucose))
   
